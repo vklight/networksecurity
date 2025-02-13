@@ -1,0 +1,8 @@
+python-dotenv
+pandas
+numpy
+seaborn
+matplolib.pyplot
+xgboost
+catboost
+pymongo
