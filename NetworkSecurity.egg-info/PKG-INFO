@@ -9,6 +9,7 @@ Requires-Dist: numpy
 Requires-Dist: seaborn
 Requires-Dist: matplotlib
 Requires-Dist: pymongo
+Requires-Dist: pymongo[srv]==3.11
 Requires-Dist: certifi
 Dynamic: author
 Dynamic: author-email
