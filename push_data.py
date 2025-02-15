@@ -1,73 +1,63 @@
 import os
 import sys
 import json
-import certifi
-import pandas as pd
-import pymongo
-from pymongo.mongo_client import MongoClient
-from pymongo.server_api import ServerApi
-from dotenv import load_dotenv
-from networksecurity.exception.exception import NetworkSecurityException
-from networksecurity.logging.logger import logging
 
+from dotenv import load_dotenv
 load_dotenv()
 
-MONGO_DB_URL = os.getenv("MONGO_DB_URL")  # Ensure correct spelling
-if not MONGO_DB_URL:
-    raise ValueError("MONGO_DB_URL is not set in environment variables.")
+MONGO_DB_URL=os.getenv("MONGO_DB_URL")
+print(MONGO_DB_URL)
 
-print("MongoDB URL:", MONGO_DB_URL)  # Debugging
+import certifi
+ca=certifi.where()
+
+import pandas as pd
+import numpy as np
+import pymongo
+from networksecurity.exception.exception import NetworkSecurityException
+from networksecurity.logging.logger import logging
 
 class NetworkDataExtract():
     def __init__(self):
         try:
-            self.mongo_client = MongoClient(MONGO_DB_URL, server_api=ServerApi('1'))  # Fix connection issue
+            pass
         except Exception as e:
-            raise NetworkSecurityException(str(e), sys)
-
+            raise NetworkSecurityException
+    
     def csv_to_json(self, file_path):
         try:
-            if not os.path.exists(file_path):
-                raise FileNotFoundError(f"File not found: {file_path}")
-
-            print("Loading file:", os.path.abspath(file_path))  # Debugging
-
-            data = pd.read_csv(file_path)
-            if data.empty:
-                raise ValueError("CSV file is empty!")
-
-            records = list(json.loads(data.T.to_json()).values())
-            print(f"Loaded {len(records)} records.")  # Debugging
+            data=pd.read_csv(file_path)
+            data.reset_index(drop=True,inplace=True)
+            records=list(json.loads(data.T.to_json()).values())
             return records
 
         except Exception as e:
-            raise NetworkSecurityException(str(e), sys)
-
-    def insert_data_mongodb(self, records, database, collection):
+            raise NetworkSecurityException(e,sys)
+        
+    def insert_data_mongodb(self,records,database,collection):
         try:
-            if not records:
-                raise NetworkSecurityException("No records found to insert into MongoDB.", sys)
+            self.database=database
+            self.collection=collection
+            self.records=records
+           
+            self.mongo_client=pymongo.MongoClient(MONGO_DB_URL)
+            self.database = self.mongo_client[self.database]
 
-            db = self.mongo_client[database]
-            col = db[collection]
+            self.collection=self.database[self.collection]
+            self.collection.insert_many(self.records)
 
-            inserted = col.insert_many(records)
-            print(f"Inserted {len(inserted.inserted_ids)} records into MongoDB.")
-
-            return len(inserted.inserted_ids)
-
+            return(len(self.records))
+        
         except Exception as e:
-            raise NetworkSecurityException(str(e), sys)
-
-if __name__ == '__main__':
-    FILE_PATH = os.path.join("Network_Data", "phisingData.csv")  # Fix file path handling
-    DATABASE = "MLPROJECT"
-    COLLECTION = "NetworkData"
-
-    networkobj = NetworkDataExtract()
-    records = networkobj.csv_to_json(file_path=FILE_PATH)
-
+            raise NetworkSecurityException(e,sys)
+        
+if __name__=='__main__':
+    FILE_PATH="Network_Data\phisingData.csv"
+    DATABASE="MLPROJECT"
+    Collection="NetworkData"
+    networkobj=NetworkDataExtract()
+    records=networkobj.csv_to_json(file_path=FILE_PATH)
     print('Processing Data...')
-    no_of_records = networkobj.insert_data_mongodb(records, DATABASE, COLLECTION)
-
-    print(no_of_records, 'records successfully pushed to MongoDB!')
+    no_of_records=networkobj.insert_data_mongodb(records,DATABASE,Collection)
+    print(no_of_records)
+    print('Successfully Pushed Data to MongoDB!')
